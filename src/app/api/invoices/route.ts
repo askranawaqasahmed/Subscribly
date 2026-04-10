@@ -11,6 +11,14 @@ export async function GET(request: NextRequest) {
     }
 
     const service = new InvoiceService()
+    
+    // If super admin, return all invoices
+    if (session.user.role === 'SUPER_ADMIN') {
+      const allInvoices = await service.getAllInvoices()
+      return NextResponse.json(allInvoices)
+    }
+
+    // For regular users, return their invoices
     const invoices = await service.getInvoicesByUser(session.user.id)
 
     return NextResponse.json(invoices)

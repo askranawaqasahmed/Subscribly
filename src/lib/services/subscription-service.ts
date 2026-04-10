@@ -31,7 +31,6 @@ export class SubscriptionService {
     return subscriptions.map((sub) => ({
       id: sub.id,
       name: sub.name,
-      icon: sub.icon,
       total_amount: Number(sub.totalAmount),
       payment_type: sub.paymentType as any,
       member_count: sub.members.length,
@@ -70,7 +69,6 @@ export class SubscriptionService {
     return userSubs.map((us) => ({
       id: us.subscription.id,
       name: us.subscription.name,
-      icon: us.subscription.icon,
       my_amount: Number(us.amount),
       owner_name: us.subscription.owner.fullName,
       owner_email: us.subscription.owner.email,
@@ -93,8 +91,14 @@ export class SubscriptionService {
             email: true,
           },
         },
+        subscriptionType: {
+          select: {
+            id: true,
+            name: true,
+            icon: true,
+          },
+        },
         members: {
-          where: { isActive: true },
           include: {
             subscriber: {
               select: {
@@ -114,7 +118,6 @@ export class SubscriptionService {
     return subscriptions.map((sub) => ({
       id: sub.id,
       name: sub.name,
-      icon: sub.icon,
       description: sub.description,
       totalAmount: Number(sub.totalAmount),
       totalMembers: sub.totalMembers,
@@ -122,6 +125,7 @@ export class SubscriptionService {
       isActive: sub.isActive,
       createdAt: sub.createdAt.toISOString(),
       updatedAt: sub.updatedAt.toISOString(),
+      subscriptionType: sub.subscriptionType,
       owner: sub.owner,
       members: sub.members.map((m) => ({
         id: m.id,
@@ -176,31 +180,111 @@ export class SubscriptionService {
   }
 
   async createSubscription(userId: string, dto: any) {
-    return await prisma.subscription.create({
-      data: {
-        name: dto.name,
-        icon: dto.icon,
-        description: dto.description,
-        totalAmount: dto.totalAmount,
-        paymentType: dto.paymentType as any,
-        totalMembers: dto.totalMembers,
-        createdBy: userId,
-        isActive: true,
-      },
+    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, ...subscriptionData } = dto
+
+    return await prisma.$transaction(async (tx) => {
+      // Create the subscription
+      const subscription = await tx.subscription.create({
+        data: {
+          name: subscriptionData.name,
+          description: subscriptionData.description,
+          totalAmount: totalAmount,
+          paymentType: paymentType as any,
+          totalMembers: totalMembers,
+          subscriptionTypeId: subscriptionData.subscriptionTypeId || null,
+          createdBy: userId,
+          isActive: true,
+        },
+      })
+
+      // Create UserSubscription records for each member
+      if (memberUserIds && memberUserIds.length > 0) {
+        const userSubscriptions = memberUserIds.map((memberId: string) => {
+          const amount = paymentType === 'equal'
+            ? totalAmount / memberUserIds.length
+            : (memberAmounts?.[memberId] || 0)
+
+          return tx.userSubscription.create({
+            data: {
+              subscriptionId: subscription.id,
+              subscriberUserId: memberId,
+              amount: amount,
+              isActive: true,
+            },
+          })
+        })
+
+        await Promise.all(userSubscriptions)
+      }
+
+      return subscription
     })
   }
 
   async updateSubscription(id: string, dto: any) {
-    return await prisma.subscription.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        icon: dto.icon,
-        description: dto.description,
-        totalAmount: dto.totalAmount,
-        totalMembers: dto.totalMembers,
-        paymentType: dto.paymentType,
-      },
+    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, ...subscriptionData } = dto
+
+    return await prisma.$transaction(async (tx) => {
+      // Update the subscription
+      const subscription = await tx.subscription.update({
+        where: { id },
+        data: {
+          name: subscriptionData.name,
+          description: subscriptionData.description,
+          totalAmount: totalAmount,
+          totalMembers: totalMembers,
+          paymentType: paymentType,
+          subscriptionTypeId: subscriptionData.subscriptionTypeId || null,
+        },
+      })
+
+      // If memberUserIds is provided, update members
+      if (memberUserIds && memberUserIds.length > 0) {
+        // Deactivate all existing members
+        await tx.userSubscription.updateMany({
+          where: { subscriptionId: id },
+          data: { isActive: false },
+        })
+
+        // Get existing members
+        const existingMembers = await tx.userSubscription.findMany({
+          where: { subscriptionId: id },
+        })
+
+        // Create or reactivate members
+        const memberOperations = memberUserIds.map(async (memberId: string) => {
+          const amount = paymentType === 'equal'
+            ? totalAmount / memberUserIds.length
+            : (memberAmounts?.[memberId] || 0)
+
+          const existingMember = existingMembers.find(m => m.subscriberUserId === memberId)
+
+          if (existingMember) {
+            // Reactivate and update existing member
+            return tx.userSubscription.update({
+              where: { id: existingMember.id },
+              data: {
+                amount: amount,
+                isActive: true,
+              },
+            })
+          } else {
+            // Create new member
+            return tx.userSubscription.create({
+              data: {
+                subscriptionId: id,
+                subscriberUserId: memberId,
+                amount: amount,
+                isActive: true,
+              },
+            })
+          }
+        })
+
+        await Promise.all(memberOperations)
+      }
+
+      return subscription
     })
   }
 

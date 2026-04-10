@@ -58,6 +58,88 @@ async function main() {
 
   console.log('✓ Created User 2:', user2.email)
 
+  // Create Subscription Types
+  console.log('\n🎯 Creating subscription types...')
+
+  const netflixType = await prisma.subscriptionType.upsert({
+    where: { name: 'Netflix Premium' },
+    update: {},
+    create: {
+      name: 'Netflix Premium',
+      icon: '🎬',
+      description: 'Stream unlimited movies and TV shows',
+      isActive: true,
+    },
+  })
+
+  const spotifyType = await prisma.subscriptionType.upsert({
+    where: { name: 'Spotify Family' },
+    update: {},
+    create: {
+      name: 'Spotify Family',
+      icon: '🎵',
+      description: 'Music streaming for the whole family',
+      isActive: true,
+    },
+  })
+
+  const disneyType = await prisma.subscriptionType.upsert({
+    where: { name: 'Disney+ Premium' },
+    update: {},
+    create: {
+      name: 'Disney+ Premium',
+      icon: '✨',
+      description: 'Premium Disney, Pixar, Marvel, Star Wars',
+      isActive: true,
+    },
+  })
+
+  const youtubeType = await prisma.subscriptionType.upsert({
+    where: { name: 'YouTube Premium Family' },
+    update: {},
+    create: {
+      name: 'YouTube Premium Family',
+      icon: '📺',
+      description: 'Ad-free videos and YouTube Music Premium',
+      isActive: true,
+    },
+  })
+
+  const amazonType = await prisma.subscriptionType.upsert({
+    where: { name: 'Amazon Prime' },
+    update: {},
+    create: {
+      name: 'Amazon Prime',
+      icon: '📦',
+      description: 'Fast shipping, Prime Video, and more',
+      isActive: true,
+    },
+  })
+
+  const appleMusicType = await prisma.subscriptionType.upsert({
+    where: { name: 'Apple Music' },
+    update: {},
+    create: {
+      name: 'Apple Music',
+      icon: '🎼',
+      description: 'Apple Music streaming service',
+      isActive: true,
+    },
+  })
+
+  const hboType = await prisma.subscriptionType.upsert({
+    where: { name: 'HBO Max' },
+    update: {},
+    create: {
+      name: 'HBO Max',
+      icon: '🎭',
+      description: 'HBO Max premium streaming',
+      isActive: true,
+    },
+  })
+
+  console.log('✓ Created 7 subscription types')
+
   // Create Dummy Subscriptions
   console.log('\n📦 Creating subscriptions...')
 
@@ -68,12 +150,12 @@ async function main() {
     create: {
       id: 'netflix-sub-001',
       name: 'Netflix Premium',
-      icon: '🎬',
       description: 'Stream unlimited movies and TV shows',
       totalAmount: 19.99,
       totalMembers: 2,
       paymentType: 'equal',
       createdBy: user1.id,
+      subscriptionTypeId: netflixType.id,
       isActive: true,
     },
   })
@@ -120,12 +202,12 @@ async function main() {
     create: {
       id: 'spotify-sub-001',
       name: 'Spotify Family',
-      icon: '🎵',
       description: 'Music streaming for the whole family',
       totalAmount: 15.99,
       totalMembers: 2,
       paymentType: 'equal',
       createdBy: user2.id,
+      subscriptionTypeId: spotifyType.id,
       isActive: true,
     },
   })
@@ -171,12 +253,12 @@ async function main() {
     create: {
       id: 'disney-sub-001',
       name: 'Disney+ Premium',
-      icon: '✨',
       description: 'Premium Disney, Pixar, Marvel, Star Wars',
       totalAmount: 12.99,
       totalMembers: 2,
       paymentType: 'individual',
       createdBy: superAdmin.id,
+      subscriptionTypeId: disneyType.id,
       isActive: true,
     },
   })
@@ -222,12 +304,12 @@ async function main() {
     create: {
       id: 'youtube-sub-001',
       name: 'YouTube Premium Family',
-      icon: '📺',
       description: 'Ad-free videos and YouTube Music Premium',
       totalAmount: 22.99,
       totalMembers: 2,
       paymentType: 'equal',
       createdBy: user1.id,
+      subscriptionTypeId: youtubeType.id,
       isActive: true,
     },
   })

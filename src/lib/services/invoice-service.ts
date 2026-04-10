@@ -2,6 +2,77 @@ import { prisma } from '@/lib/prisma'
 import type { Invoice, GenerateInvoiceDto } from '@/lib/types'
 
 export class InvoiceService {
+  async getAllInvoices() {
+    const invoices = await prisma.invoice.findMany({
+      include: {
+        userSubscription: {
+          include: {
+            subscription: {
+              include: {
+                owner: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+                subscriptionType: {
+                  select: {
+                    id: true,
+                    name: true,
+                    icon: true,
+                  },
+                },
+              },
+            },
+            subscriber: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        creator: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+        issuedTo: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return invoices.map((invoice) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.id.substring(0, 8).toUpperCase(),
+      totalAmount: Number(invoice.totalAmount),
+      monthsCovered: invoice.monthsCovered,
+      status: invoice.status,
+      sentOn: invoice.sentOn?.toISOString() || null,
+      paidOn: invoice.paidOn?.toISOString() || null,
+      createdAt: invoice.createdAt.toISOString(),
+      subscription: {
+        id: invoice.userSubscription.subscription.id,
+        name: invoice.userSubscription.subscription.name,
+        icon: invoice.userSubscription.subscription.subscriptionType?.icon || null,
+        owner: invoice.userSubscription.subscription.owner,
+      },
+      recipient: invoice.issuedTo,
+      creator: invoice.creator,
+    }))
+  }
+
+
   async generateInvoice(userId: string, dto: GenerateInvoiceDto): Promise<Invoice> {
     const payments = await prisma.payment.findMany({
       where: {

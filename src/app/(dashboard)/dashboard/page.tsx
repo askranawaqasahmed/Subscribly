@@ -22,21 +22,13 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-secondary p-8 shadow-xl">
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-              Welcome Back! 👋
-            </h1>
-            <p className="text-white/90 text-lg">
-              Manage your subscriptions and track payments
-            </p>
-          </div>
-          <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg">
-            <Link href={ROUTES.SUBSCRIPTION_NEW}>
-              <Plus className="mr-2 h-5 w-5" />
-              New Subscription
-            </Link>
-          </Button>
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
+            Welcome Back! 👋
+          </h1>
+          <p className="text-white/90 text-lg">
+            Manage your subscriptions and track payments
+          </p>
         </div>
         {/* Decorative circles */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />

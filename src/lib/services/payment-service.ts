@@ -2,6 +2,67 @@ import { prisma } from '@/lib/prisma'
 import type { Payment, CreatePaymentDto } from '@/lib/types'
 
 export class PaymentService {
+  async getAllPayments() {
+    const payments = await prisma.payment.findMany({
+      include: {
+        userSubscription: {
+          include: {
+            subscription: {
+              include: {
+                owner: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+                subscriptionType: {
+                  select: {
+                    id: true,
+                    name: true,
+                    icon: true,
+                  },
+                },
+              },
+            },
+            subscriber: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        creator: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return payments.map((payment) => ({
+      id: payment.id,
+      amount: Number(payment.amount),
+      isPaid: payment.isPaid,
+      paidOn: payment.paidOn?.toISOString() || null,
+      expiryDate: payment.expiryDate.toISOString(),
+      createdAt: payment.createdAt.toISOString(),
+      subscription: {
+        id: payment.userSubscription.subscription.id,
+        name: payment.userSubscription.subscription.name,
+        icon: payment.userSubscription.subscription.subscriptionType?.icon || null,
+      },
+      member: payment.userSubscription.subscriber,
+      creator: payment.creator,
+    }))
+  }
+
+
   async createPayment(userId: string, dto: CreatePaymentDto): Promise<Payment> {
     return await prisma.payment.create({
       data: {

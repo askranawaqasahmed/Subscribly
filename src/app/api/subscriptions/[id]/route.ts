@@ -40,10 +40,13 @@ export async function PUT(
     }
 
     const service = new SubscriptionService()
-    const isOwner = await service.isOwner(id, session.user.id)
-
-    if (!isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    
+    // Allow super admins to edit any subscription, otherwise check ownership
+    if (session.user.role !== 'SUPER_ADMIN') {
+      const isOwner = await service.isOwner(id, session.user.id)
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
     const body = await request.json()
@@ -72,10 +75,13 @@ export async function DELETE(
     }
 
     const service = new SubscriptionService()
-    const isOwner = await service.isOwner(id, session.user.id)
-
-    if (!isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    
+    // Allow super admins to delete any subscription, otherwise check ownership
+    if (session.user.role !== 'SUPER_ADMIN') {
+      const isOwner = await service.isOwner(id, session.user.id)
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
     await service.deleteSubscription(id)

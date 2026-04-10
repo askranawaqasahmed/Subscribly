@@ -11,6 +11,14 @@ export async function GET(request: NextRequest) {
     }
 
     const service = new PaymentService()
+    
+    // If super admin, return all payments
+    if (session.user.role === 'SUPER_ADMIN') {
+      const allPayments = await service.getAllPayments()
+      return NextResponse.json(allPayments)
+    }
+
+    // For regular users, return their payments
     const payments = await service.getPaymentsByUser(session.user.id)
 
     return NextResponse.json(payments)

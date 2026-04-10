@@ -93,23 +93,40 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// Subscription model
-model Subscription {
-  id             String             @id @default(uuid())
-  name           String
-  icon           String?
-  description    String?
-  totalAmount    Decimal            @map("total_amount") @db.Decimal(18, 2)
-  paymentType    PaymentType        @map("payment_type")
-  totalMembers   Int                @map("total_members")
-  createdBy      String             @map("created_by")
-  isActive       Boolean            @default(true) @map("is_active")
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
+// Subscription Type model (master templates managed by admin)
+model SubscriptionType {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  icon          String?
+  description   String?
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   
   // Relations
-  owner          User               @relation("SubscriptionOwner", fields: [createdBy], references: [id], onDelete: Cascade)
-  members        UserSubscription[]
+  subscriptions Subscription[]
+
+  @@map("subscription_types")
+}
+
+// Subscription model
+model Subscription {
+  id                   String             @id @default(uuid())
+  name                 String
+  description          String?
+  totalAmount          Decimal            @map("total_amount") @db.Decimal(18, 2)
+  paymentType          PaymentType        @map("payment_type")
+  totalMembers         Int                @map("total_members")
+  createdBy            String             @map("created_by")
+  subscriptionTypeId   String?            @map("subscription_type_id")
+  isActive             Boolean            @default(true) @map("is_active")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  
+  // Relations
+  owner                User               @relation("SubscriptionOwner", fields: [createdBy], references: [id], onDelete: Cascade)
+  subscriptionType     SubscriptionType?  @relation(fields: [subscriptionTypeId], references: [id], onDelete: SetNull)
+  members              UserSubscription[]
 
   @@map("subscriptions")
 }

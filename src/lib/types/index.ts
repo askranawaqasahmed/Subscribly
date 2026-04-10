@@ -29,7 +29,6 @@ export interface Profile {
 export interface Subscription {
   id: string
   name: string
-  icon: string | null
   description: string | null
   total_amount: number
   payment_type: PaymentType
@@ -82,7 +81,6 @@ export interface Invoice {
 export interface MySubscriptionDto {
   id: string
   name: string
-  icon: string | null
   total_amount: number
   payment_type: PaymentType
   member_count: number
@@ -93,7 +91,6 @@ export interface MySubscriptionDto {
 export interface SubscribedSubscriptionDto {
   id: string
   name: string
-  icon: string | null
   my_amount: number
   owner_name: string
   owner_email: string
