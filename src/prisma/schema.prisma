@@ -1,0 +1,174 @@
+// Prisma schema for Subscribly
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum PaymentType {
+  equal
+  individual
+}
+
+enum InvoiceStatus {
+  generated
+  sent
+  paid
+}
+
+enum UserRole {
+  USER
+  SUPER_ADMIN
+}
+
+// User model (replaces auth.users from Supabase)
+model User {
+  id                    String              @id @default(uuid())
+  email                 String              @unique
+  password              String
+  fullName              String              @map("full_name")
+  phoneNumber           String?             @map("phone_number")
+  avatarUrl             String?             @map("avatar_url")
+  role                  UserRole            @default(USER)
+  isActive              Boolean             @default(true) @map("is_active")
+  emailVerified         DateTime?           @map("email_verified")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  
+  // Relations
+  ownedSubscriptions    Subscription[]      @relation("SubscriptionOwner")
+  userSubscriptions     UserSubscription[]
+  paymentsCreated       Payment[]           @relation("PaymentCreator")
+  invoicesCreated       Invoice[]           @relation("InvoiceCreator")
+  invoicesReceived      Invoice[]           @relation("InvoiceRecipient")
+  accounts              Account[]
+  sessions              Session[]
+
+  @@map("users")
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Subscription model
+model Subscription {
+  id             String             @id @default(uuid())
+  name           String
+  icon           String?
+  description    String?
+  totalAmount    Decimal            @map("total_amount") @db.Decimal(18, 2)
+  paymentType    PaymentType        @map("payment_type")
+  totalMembers   Int                @map("total_members")
+  createdBy      String             @map("created_by")
+  isActive       Boolean            @default(true) @map("is_active")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  
+  // Relations
+  owner          User               @relation("SubscriptionOwner", fields: [createdBy], references: [id], onDelete: Cascade)
+  members        UserSubscription[]
+
+  @@map("subscriptions")
+}
+
+// User subscription (junction table for members)
+model UserSubscription {
+  id                String       @id @default(uuid())
+  subscriptionId    String       @map("subscription_id")
+  subscriberUserId  String       @map("subscriber_user_id")
+  amount            Decimal      @db.Decimal(18, 2)
+  expiryDate        DateTime?    @map("expiry_date")
+  isActive          Boolean      @default(true) @map("is_active")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  
+  // Relations
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriber        User         @relation(fields: [subscriberUserId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  invoices          Invoice[]
+
+  @@unique([subscriptionId, subscriberUserId])
+  @@map("user_subscriptions")
+}
+
+// Payment model
+model Payment {
+  id                  String            @id @default(uuid())
+  userSubscriptionId  String            @map("user_subscription_id")
+  amount              Decimal           @db.Decimal(18, 2)
+  isPaid              Boolean           @default(false) @map("is_paid")
+  paidOn              DateTime?         @map("paid_on")
+  expiryDate          DateTime          @map("expiry_date")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  createdBy           String            @map("created_by")
+  
+  // Relations
+  userSubscription    UserSubscription  @relation(fields: [userSubscriptionId], references: [id], onDelete: Cascade)
+  creator             User              @relation("PaymentCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// Invoice model
+model Invoice {
+  id                  String            @id @default(uuid())
+  userSubscriptionId  String            @map("user_subscription_id")
+  issuedToUserId      String            @map("issued_to_user_id")
+  totalAmount         Decimal           @db.Decimal(18, 2)
+  monthsCovered       String            @map("months_covered")
+  status              InvoiceStatus     @default(generated)
+  sentOn              DateTime?         @map("sent_on")
+  paidOn              DateTime?         @map("paid_on")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  createdBy           String            @map("created_by")
+  
+  // Relations
+  userSubscription    UserSubscription  @relation(fields: [userSubscriptionId], references: [id], onDelete: Cascade)
+  issuedTo            User              @relation("InvoiceRecipient", fields: [issuedToUserId], references: [id], onDelete: Cascade)
+  creator             User              @relation("InvoiceCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
