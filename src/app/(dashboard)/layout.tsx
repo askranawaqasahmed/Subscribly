@@ -17,12 +17,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full flex-col bg-gradient-to-br from-background via-muted/30 to-background">
       <div className="flex flex-1">
         <Sidebar user={session.user} />
         <div className="flex flex-1 flex-col">
           <Header user={session.user} />
-          <main className="flex-1 p-4 sm:px-6 sm:py-6 md:gap-8 mb-16 md:mb-0">
+          <main className="flex-1 p-4 sm:px-8 sm:py-8 md:gap-8 mb-16 md:mb-0">
             {children}
           </main>
         </div>

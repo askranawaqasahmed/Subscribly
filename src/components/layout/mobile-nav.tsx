@@ -40,8 +40,8 @@ export function MobileNav({ user }: MobileNavProps) {
     : navigation
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
-      <nav className="flex items-center justify-around">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-white/80 backdrop-blur-xl md:hidden shadow-2xl">
+      <nav className="flex items-center justify-around px-2 py-1">
         {allNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
@@ -49,10 +49,10 @@ export function MobileNav({ user }: MobileNavProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors',
+                'flex flex-col items-center gap-1 px-3 py-2 text-xs transition-all rounded-xl',
                 isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                  ? 'text-primary bg-primary/10 font-semibold'
+                  : 'text-muted-foreground hover:text-primary hover:bg-muted/50'
               )}
             >
               <item.icon className="h-5 w-5" />
