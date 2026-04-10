@@ -83,18 +83,25 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">{APP_NAME}</CardTitle>
-          <CardDescription className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 p-4 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-secondary/20 to-transparent rounded-full blur-3xl" />
+      
+      <Card className="w-full max-w-md shadow-2xl border-0 relative z-10 bg-white/95 backdrop-blur-sm">
+        <CardHeader className="space-y-3 pb-6">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg mb-2">
+            <span className="text-3xl">✨</span>
+          </div>
+          <CardTitle className="text-3xl font-bold text-center gradient-text">{APP_NAME}</CardTitle>
+          <CardDescription className="text-center text-base">
             Create an account to get started
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName" className="text-sm font-semibold text-foreground">Full Name</Label>
               <Input
                 id="fullName"
                 name="fullName"
@@ -104,10 +111,11 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
+                className="h-11 border-2 focus:border-primary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold text-foreground">Email Address</Label>
               <Input
                 id="email"
                 name="email"
@@ -117,10 +125,11 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
+                className="h-11 border-2 focus:border-primary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Label htmlFor="phoneNumber" className="text-sm font-semibold text-foreground">Phone Number</Label>
               <Input
                 id="phoneNumber"
                 name="phoneNumber"
@@ -130,10 +139,11 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
+                className="h-11 border-2 focus:border-primary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold text-foreground">Password</Label>
               <Input
                 id="password"
                 name="password"
@@ -143,10 +153,11 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
+                className="h-11 border-2 focus:border-primary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -156,22 +167,28 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
+                className="h-11 border-2 focus:border-primary transition-colors"
               />
             </div>
             {error && (
-              <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3">
-                {error}
+              <div className="text-sm text-red-600 bg-red-50 border-2 border-red-200 rounded-lg p-4 flex items-start gap-2">
+                <span className="text-lg">⚠️</span>
+                <span className="font-medium">{error}</span>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-lg text-base font-semibold mt-6" 
+              disabled={isLoading}
+            >
               {isLoading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-center text-gray-600 dark:text-gray-400">
+        <CardFooter className="flex flex-col space-y-4 pb-6">
+          <div className="text-sm text-center text-muted-foreground">
             Already have an account?{' '}
-            <Link href={ROUTES.LOGIN} className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
+            <Link href={ROUTES.LOGIN} className="text-primary hover:text-secondary font-semibold transition-colors">
               Sign in
             </Link>
           </div>

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { Users } from 'lucide-react'
 
 interface User {
   id: string
@@ -99,20 +100,35 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground">
-          Manage all registered users in the system
-        </p>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-secondary p-8 shadow-xl">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Users className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-white">User Management</h1>
+          </div>
+          <p className="text-white/90 text-lg">
+            Manage all registered users in the system
+          </p>
+        </div>
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            Total users: {users.length}
-          </CardDescription>
+      <Card className="border-0 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">All Users</CardTitle>
+              <CardDescription className="text-base mt-1">
+                Total users: <span className="font-bold text-primary">{users.length}</span>
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -136,21 +152,31 @@ export default function AdminUsersPage() {
                 </TableRow>
               ) : (
                 users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.fullName}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phoneNumber || '-'}</TableCell>
+                  <TableRow key={user.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-semibold">{user.fullName}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.phoneNumber || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
-                        {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'User'}
+                      <Badge 
+                        variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}
+                        className={user.role === 'SUPER_ADMIN' 
+                          ? 'bg-gradient-to-r from-primary to-secondary text-white font-semibold' 
+                          : 'bg-muted text-muted-foreground font-semibold'}
+                      >
+                        {user.role === 'SUPER_ADMIN' ? '👑 Super Admin' : '👤 User'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.isActive ? 'default' : 'destructive'}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                      <Badge 
+                        variant={user.isActive ? 'default' : 'destructive'}
+                        className={user.isActive 
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200 font-semibold' 
+                          : 'bg-red-100 text-red-700 hover:bg-red-200 font-semibold'}
+                      >
+                        {user.isActive ? '✓ Active' : '✕ Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground">
                       {format(new Date(user.createdAt), 'MMM dd, yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
@@ -159,6 +185,9 @@ export default function AdminUsersPage() {
                         variant={user.isActive ? 'destructive' : 'default'}
                         onClick={() => toggleUserStatus(user.id, user.isActive)}
                         disabled={actionLoading === user.id}
+                        className={user.isActive 
+                          ? 'hover:shadow-lg transition-all' 
+                          : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-md transition-all'}
                       >
                         {actionLoading === user.id
                           ? 'Processing...'

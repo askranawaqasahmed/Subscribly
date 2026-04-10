@@ -40,16 +40,18 @@ export function Sidebar({ user }: SidebarProps) {
   const isSuperAdmin = user.role === 'SUPER_ADMIN'
 
   return (
-    <div className="hidden border-r bg-muted/40 md:block">
+    <div className="hidden md:block w-64 gradient-primary shadow-2xl">
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-16 items-center border-b px-6">
-          <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2 font-semibold">
-            <CreditCard className="h-6 w-6" />
-            <span>{APP_NAME}</span>
+        <div className="flex h-16 items-center border-b border-white/10 px-6">
+          <Link href={ROUTES.DASHBOARD} className="flex items-center gap-3 font-bold text-white hover:opacity-90 transition-opacity">
+            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <span className="text-lg">{APP_NAME}</span>
           </Link>
         </div>
-        <div className="flex-1 overflow-auto py-2">
-          <nav className="grid items-start px-4 text-sm font-medium">
+        <div className="flex-1 overflow-auto py-4">
+          <nav className="grid items-start px-3 text-sm font-medium gap-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
@@ -57,23 +59,23 @@ export function Sidebar({ user }: SidebarProps) {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
+                    'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200',
                     isActive
-                      ? 'bg-primary text-primary-foreground hover:text-primary-foreground'
-                      : 'text-muted-foreground'
+                      ? 'bg-white text-primary shadow-lg'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.name}
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-medium">{item.name}</span>
                 </Link>
               )
             })}
             
             {isSuperAdmin && (
               <>
-                <div className="my-2 border-t" />
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">
-                  Admin
+                <div className="my-3 border-t border-white/20" />
+                <div className="px-4 py-2 text-xs font-bold text-white/60 uppercase tracking-wider">
+                  Administration
                 </div>
                 {adminNavigation.map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -82,14 +84,14 @@ export function Sidebar({ user }: SidebarProps) {
                       key={item.name}
                       href={item.href}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
+                        'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200',
                         isActive
-                          ? 'bg-primary text-primary-foreground hover:text-primary-foreground'
-                          : 'text-muted-foreground'
+                          ? 'bg-white text-primary shadow-lg'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
                       )}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.name}</span>
                     </Link>
                   )
                 })}
