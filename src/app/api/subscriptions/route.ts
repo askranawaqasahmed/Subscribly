@@ -11,6 +11,14 @@ export async function GET(request: NextRequest) {
     }
 
     const service = new SubscriptionService()
+    
+    // If super admin, return all subscriptions for management
+    if (session.user.role === 'SUPER_ADMIN') {
+      const allSubscriptions = await service.getAllSubscriptions()
+      return NextResponse.json(allSubscriptions)
+    }
+
+    // For regular users, return their subscriptions
     const [mySubscriptions, subscribedSubscriptions] = await Promise.all([
       service.getMySubscriptions(session.user.id),
       service.getSubscribedSubscriptions(session.user.id),

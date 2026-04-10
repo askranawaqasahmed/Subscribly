@@ -80,6 +80,58 @@ export class SubscriptionService {
     }))
   }
 
+  async getAllSubscriptions() {
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        isActive: true,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        members: {
+          where: { isActive: true },
+          include: {
+            subscriber: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return subscriptions.map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      icon: sub.icon,
+      description: sub.description,
+      totalAmount: Number(sub.totalAmount),
+      totalMembers: sub.totalMembers,
+      paymentType: sub.paymentType,
+      isActive: sub.isActive,
+      createdAt: sub.createdAt.toISOString(),
+      updatedAt: sub.updatedAt.toISOString(),
+      owner: sub.owner,
+      members: sub.members.map((m) => ({
+        id: m.id,
+        amount: Number(m.amount),
+        isActive: m.isActive,
+        subscriber: m.subscriber,
+      })),
+    }))
+  }
+
   async getSubscriptionById(id: string): Promise<Subscription | null> {
     const sub = await prisma.subscription.findUnique({
       where: { id },
@@ -123,29 +175,31 @@ export class SubscriptionService {
     }
   }
 
-  async createSubscription(userId: string, dto: CreateSubscriptionDto) {
+  async createSubscription(userId: string, dto: any) {
     return await prisma.subscription.create({
       data: {
         name: dto.name,
         icon: dto.icon,
         description: dto.description,
-        totalAmount: dto.total_amount,
-        paymentType: dto.payment_type as any,
-        totalMembers: dto.total_members,
+        totalAmount: dto.totalAmount,
+        paymentType: dto.paymentType as any,
+        totalMembers: dto.totalMembers,
         createdBy: userId,
         isActive: true,
       },
     })
   }
 
-  async updateSubscription(id: string, dto: UpdateSubscriptionDto) {
+  async updateSubscription(id: string, dto: any) {
     return await prisma.subscription.update({
       where: { id },
       data: {
         name: dto.name,
         icon: dto.icon,
         description: dto.description,
-        totalAmount: dto.total_amount,
+        totalAmount: dto.totalAmount,
+        totalMembers: dto.totalMembers,
+        paymentType: dto.paymentType,
       },
     })
   }
