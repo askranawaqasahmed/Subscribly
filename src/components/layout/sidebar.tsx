@@ -11,6 +11,11 @@ import {
   DollarSign,
   BarChart3,
   Users,
+<<<<<<< Updated upstream
+=======
+  Tags,
+  Settings,
+>>>>>>> Stashed changes
 } from 'lucide-react'
 
 const navigation = [
@@ -23,6 +28,11 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
+<<<<<<< Updated upstream
+=======
+  { name: 'Subscription Types', href: '/admin/subscription-types', icon: Tags },
+  { name: 'Settings', href: ROUTES.SETTINGS, icon: Settings },
+>>>>>>> Stashed changes
 ]
 
 interface SidebarProps {

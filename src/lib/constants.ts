@@ -13,6 +13,7 @@ export const ROUTES = {
   INVOICES: '/invoices',
   INVOICE_DETAIL: (id: string) => `/invoices/${id}`,
   PENDING_REPORT: '/reports/pending',
+  SETTINGS: '/admin/settings',
 } as const
 
 export const API_ROUTES = {
@@ -26,6 +27,13 @@ export const API_ROUTES = {
   INVOICE_DETAIL: (id: string) => `/api/invoices/${id}`,
   SEND_INVOICE: (id: string) => `/api/invoices/${id}/send`,
   PENDING_REPORT: '/api/reports/pending',
+  // Settings
+  ADMIN_SETTINGS: '/api/admin/settings',
+  TEST_EMAIL_CONFIG: '/api/admin/settings/test-email',
+  // Invoice generation
+  GENERATE_INVOICE_FOR_USER: '/api/invoices/generate-for-user',
+  GENERATE_ALL_INVOICES: '/api/invoices/generate-all',
+  USERS_WITH_UNPAID: '/api/users/with-unpaid-payments',
 } as const
 
 export const PAYMENT_TYPE_OPTIONS = [
