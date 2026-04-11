@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,8 +13,6 @@ import { Loader2, Eye, EyeOff, Mail, Send, CheckCircle, AlertCircle, ExternalLin
 import { API_ROUTES } from '@/lib/constants'
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -40,23 +36,25 @@ export default function SettingsPage() {
   const [resendFromName, setResendFromName] = useState('Subscribly')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (status === 'authenticated' && session?.user?.role !== 'SUPER_ADMIN') {
-      router.push('/dashboard')
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have permission to access this page.',
-        variant: 'destructive',
-      })
-    } else if (status === 'authenticated') {
-      loadSettings()
-    }
-  }, [status, session, router, toast])
+    loadSettings()
+  }, [])
 
   const loadSettings = async () => {
     try {
       const response = await fetch(`${API_ROUTES.ADMIN_SETTINGS}?category=email`)
+      
+      if (!response.ok) {
+        if (response.status === 403) {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have permission to access this page.',
+            variant: 'destructive',
+          })
+          return
+        }
+        throw new Error('Failed to load settings')
+      }
+      
       const data = await response.json()
 
       if (data.settings) {
@@ -234,7 +232,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )

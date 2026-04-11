@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-=======
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -64,7 +61,6 @@ interface Invoice {
     email: string
   }
 }
->>>>>>> Stashed changes
 
 interface UserWithUnpaid {
   id: string
@@ -76,14 +72,6 @@ interface UserWithUnpaid {
 }
 
 export default function InvoicesPage() {
-<<<<<<< Updated upstream
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Invoices</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoice Management</CardTitle>
-=======
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -440,12 +428,7 @@ export default function InvoicesPage() {
               </CardDescription>
             </div>
           </div>
->>>>>>> Stashed changes
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Invoice management coming soon...</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoices Table */}
