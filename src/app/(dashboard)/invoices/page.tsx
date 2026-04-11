@@ -22,8 +22,16 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Eye, FileText, Send, CheckCircle, Download } from 'lucide-react'
+import { Eye, FileText, Send, CheckCircle, Download, Plus, Mail, Loader2, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
+import { API_ROUTES } from '@/lib/constants'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Invoice {
   id: string
@@ -54,12 +62,27 @@ interface Invoice {
   }
 }
 
+interface UserWithUnpaid {
+  id: string
+  fullName: string
+  email: string
+  unpaidCount: number
+  unpaidAmount: number
+  subscriptions: string[]
+}
+
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
   const [filterTab, setFilterTab] = useState<'all' | 'generated' | 'sent' | 'paid'>('all')
+  const [generatingAll, setGeneratingAll] = useState(false)
+  const [generatingAndEmailing, setGeneratingAndEmailing] = useState(false)
+  const [showUsersDialog, setShowUsersDialog] = useState(false)
+  const [usersWithUnpaid, setUsersWithUnpaid] = useState<UserWithUnpaid[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [generatingForUser, setGeneratingForUser] = useState<string | null>(null)
 
   useEffect(() => {
     fetchInvoices()
@@ -124,6 +147,85 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error('Error:', error)
       toast.error('Failed to mark invoice as paid')
+    }
+  }
+
+  const handleGenerateAll = async (sendEmail: boolean) => {
+    if (!confirm(`Generate invoices for all users with unpaid payments${sendEmail ? ' and send them via email' : ''}?`)) return
+
+    if (sendEmail) {
+      setGeneratingAndEmailing(true)
+    } else {
+      setGeneratingAll(true)
+    }
+
+    try {
+      const response = await fetch(API_ROUTES.GENERATE_ALL_INVOICES, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sendEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Failed to generate invoices')
+
+      if (sendEmail) {
+        toast.success(`Generated ${data.count} invoices, ${data.emailedCount} emailed successfully`)
+      } else {
+        toast.success(data.message || `Generated ${data.count} invoices successfully`)
+      }
+      
+      fetchInvoices()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to generate invoices')
+    } finally {
+      setGeneratingAll(false)
+      setGeneratingAndEmailing(false)
+    }
+  }
+
+  const fetchUsersWithUnpaid = async () => {
+    setLoadingUsers(true)
+    try {
+      const response = await fetch(API_ROUTES.USERS_WITH_UNPAID)
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch users')
+
+      setUsersWithUnpaid(data.users || [])
+      setShowUsersDialog(true)
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Failed to load users with unpaid payments')
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
+  const handleGenerateForUser = async (userId: string, sendEmail: boolean) => {
+    setGeneratingForUser(userId)
+    
+    try {
+      const response = await fetch(API_ROUTES.GENERATE_INVOICE_FOR_USER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, sendEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Failed to generate invoice')
+
+      toast.success(data.message || 'Invoice generated successfully')
+      fetchInvoices()
+      setShowUsersDialog(false)
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to generate invoice')
+    } finally {
+      setGeneratingForUser(null)
     }
   }
 
@@ -197,10 +299,123 @@ export default function InvoicesPage() {
               <p className="text-3xl font-bold text-white">{stats.paid}</p>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6">
+            <Button
+              onClick={fetchUsersWithUnpaid}
+              variant="secondary"
+              size="lg"
+              disabled={loadingUsers}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              {loadingUsers ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-2" />
+              )}
+              Generate for User
+            </Button>
+            <Button
+              onClick={() => handleGenerateAll(false)}
+              variant="secondary"
+              size="lg"
+              disabled={generatingAll || generatingAndEmailing}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              {generatingAll ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Generate All Invoices
+            </Button>
+            <Button
+              onClick={() => handleGenerateAll(true)}
+              variant="secondary"
+              size="lg"
+              disabled={generatingAll || generatingAndEmailing}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              {generatingAndEmailing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
+              Generate & Email All
+            </Button>
+          </div>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
       </div>
+
+      {/* Users with Unpaid Payments Dialog */}
+      <Dialog open={showUsersDialog} onOpenChange={setShowUsersDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate Invoice for User</DialogTitle>
+            <DialogDescription>
+              Select a user to generate an invoice for their unpaid payments
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {usersWithUnpaid.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No users with unpaid payments found
+              </p>
+            ) : (
+              usersWithUnpaid.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="font-semibold">{user.fullName}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {user.unpaidCount} unpaid payment{user.unpaidCount !== 1 ? 's' : ''} • 
+                      ${user.unpaidAmount.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Subscriptions: {user.subscriptions.join(', ')}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleGenerateForUser(user.id, false)}
+                      variant="outline"
+                      size="sm"
+                      disabled={generatingForUser === user.id}
+                    >
+                      {generatingForUser === user.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Generate'
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateForUser(user.id, true)}
+                      size="sm"
+                      disabled={generatingForUser === user.id}
+                    >
+                      {generatingForUser === user.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4 mr-1" />
+                          Generate & Email
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invoices Table */}
       <Card className="border-0 shadow-xl">

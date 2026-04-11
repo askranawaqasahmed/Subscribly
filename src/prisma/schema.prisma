@@ -47,6 +47,7 @@ model User {
   paymentsCreated       Payment[]           @relation("PaymentCreator")
   invoicesCreated       Invoice[]           @relation("InvoiceCreator")
   invoicesReceived      Invoice[]           @relation("InvoiceRecipient")
+  settingsCreated       AppSettings[]       @relation("SettingsCreator")
   accounts              Account[]
   sessions              Session[]
 
@@ -188,4 +189,22 @@ model Invoice {
   creator             User              @relation("InvoiceCreator", fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@map("invoices")
+}
+
+// App Settings model (for storing configuration)
+model AppSettings {
+  id               String    @id @default(uuid())
+  key              String    @unique
+  value            String?
+  encrypted        Boolean   @default(false)
+  category         String    @default("general")
+  description      String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String    @map("created_by")
+  
+  // Relations
+  creator          User      @relation("SettingsCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("app_settings")
 }

@@ -12,6 +12,7 @@ import {
   BarChart3,
   Users,
   Tags,
+  Settings,
 } from 'lucide-react'
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
   { name: 'Subscription Types', href: '/admin/subscription-types', icon: Tags },
+  { name: 'Settings', href: ROUTES.SETTINGS, icon: Settings },
 ]
 
 interface SidebarProps {

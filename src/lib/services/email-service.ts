@@ -1,5 +1,7 @@
-// Placeholder email service
-// In production, integrate with Resend, SendGrid, or similar
+import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+import { settingsService } from './settings-service'
+import type { EmailConfig } from './settings-service'
 
 export interface EmailData {
   to: string
@@ -9,11 +11,8 @@ export interface EmailData {
 }
 
 export class EmailService {
-  private fromEmail: string
-
-  constructor() {
-    this.fromEmail = process.env.SMTP_FROM_EMAIL || 'noreply@subscribly.app'
-  }
+  private gmailTransporter: nodemailer.Transporter | null = null
+  private resendClient: Resend | null = null
 
   async sendInvoiceEmail(
     toEmail: string,
@@ -53,23 +52,129 @@ export class EmailService {
     })
   }
 
-  private async sendEmail(data: EmailData): Promise<void> {
-    // Placeholder implementation
-    // In production, integrate with actual email service
-    console.log('Email would be sent:', {
-      to: data.to,
-      subject: data.subject,
-      from: data.from || this.fromEmail,
-    })
+  async testEmailConfiguration(config: EmailConfig, testEmail: string): Promise<void> {
+    const testData: EmailData = {
+      to: testEmail,
+      subject: 'Test Email from Subscribly',
+      html: this.generateTestEmailTemplate(),
+    }
 
-    // Example integration with Resend:
-    // const resend = new Resend(process.env.RESEND_API_KEY)
-    // await resend.emails.send({
-    //   from: data.from || this.fromEmail,
-    //   to: data.to,
-    //   subject: data.subject,
-    //   html: data.html,
-    // })
+    if (config.provider === 'gmail' && config.gmail) {
+      await this.sendWithGmail(testData, config.gmail)
+    } else if (config.provider === 'resend' && config.resend) {
+      await this.sendWithResend(testData, config.resend)
+    } else {
+      throw new Error('Invalid email configuration')
+    }
+  }
+
+  private async sendEmail(data: EmailData): Promise<void> {
+    const config = await settingsService.getEmailConfig()
+
+    if (!config.provider) {
+      throw new Error('Email not configured. Please configure email settings in Admin > Settings.')
+    }
+
+    if (config.provider === 'gmail' && config.gmail) {
+      await this.sendWithGmail(data, config.gmail)
+    } else if (config.provider === 'resend' && config.resend) {
+      await this.sendWithResend(data, config.resend)
+    } else {
+      throw new Error(`Email provider ${config.provider} is not properly configured.`)
+    }
+  }
+
+  private async sendWithGmail(
+    data: EmailData,
+    gmailConfig: NonNullable<EmailConfig['gmail']>
+  ): Promise<void> {
+    try {
+      if (!this.gmailTransporter) {
+        this.gmailTransporter = nodemailer.createTransport({
+          host: gmailConfig.host,
+          port: gmailConfig.port,
+          secure: gmailConfig.port === 465,
+          auth: {
+            user: gmailConfig.user,
+            pass: gmailConfig.password,
+          },
+        })
+      }
+
+      await this.gmailTransporter.sendMail({
+        from: data.from || `"${gmailConfig.fromName}" <${gmailConfig.fromEmail}>`,
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+      })
+
+      console.log('Email sent successfully via Gmail SMTP to:', data.to)
+    } catch (error) {
+      console.error('Gmail SMTP error:', error)
+      this.gmailTransporter = null
+      throw new Error(`Failed to send email via Gmail: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  private async sendWithResend(
+    data: EmailData,
+    resendConfig: NonNullable<EmailConfig['resend']>
+  ): Promise<void> {
+    try {
+      if (!this.resendClient) {
+        this.resendClient = new Resend(resendConfig.apiKey)
+      }
+
+      await this.resendClient.emails.send({
+        from: data.from || `${resendConfig.fromName} <${resendConfig.fromEmail}>`,
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+      })
+
+      console.log('Email sent successfully via Resend to:', data.to)
+    } catch (error) {
+      console.error('Resend error:', error)
+      this.resendClient = null
+      throw new Error(`Failed to send email via Resend: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  private generateTestEmailTemplate(): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { padding: 20px; background: #f9fafb; border-radius: 0 0 8px 8px; }
+            .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+            .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✓ Test Email Success</h1>
+            </div>
+            <div class="content">
+              <div class="success-box">
+                <p><strong>Congratulations!</strong></p>
+                <p>Your email configuration is working correctly. This is a test email from Subscribly.</p>
+              </div>
+              <p>You can now use this email provider to send invoices and payment reminders.</p>
+              <p>If you received this email, your email configuration has been successfully set up.</p>
+            </div>
+            <div class="footer">
+              <p>This is a test email from Subscribly.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
   }
 
   private generateInvoiceEmailTemplate(data: {
