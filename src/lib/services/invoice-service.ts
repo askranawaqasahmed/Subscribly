@@ -1,13 +1,9 @@
 import { prisma } from '@/lib/prisma'
-<<<<<<< Updated upstream
-import type { Invoice, GenerateInvoiceDto } from '@/lib/types'
-=======
+
 import type { Invoice, GenerateInvoiceDto, MemberInvoicePreviewDto, GenerateInvoiceResultDto } from '@/lib/types'
 import { EmailService } from './email-service'
 
 const emailService = new EmailService()
->>>>>>> Stashed changes
-
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export class InvoiceService {
@@ -173,48 +169,28 @@ export class InvoiceService {
   }
 
   async sendInvoice(invoiceId: string): Promise<void> {
-    await prisma.invoice.update({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      data: {
-        status: 'sent',
-        sentOn: new Date(),
+      include: {
+        userSubscription: {
+          include: {
+            subscription: {
+              include: {
+                owner: true,
+              },
+            },
+          },
+        },
+        issuedTo: true,
       },
     })
-<<<<<<< Updated upstream
-=======
+
 
     if (!invoice) {
       throw new Error('Invoice not found')
     }
 
     try {
-      // Check for arrears to provide detailed breakdown in email
-      const unpaidInvoices = await prisma.invoice.findMany({
-        where: {
-          userSubscriptionId: invoice.userSubscriptionId,
-          status: { not: 'paid' },
-          id: { not: invoiceId }, // Exclude current invoice
-          OR: [
-            { billingYear: { lt: invoice.billingYear } },
-            { 
-              billingYear: invoice.billingYear, 
-              billingMonth: { lt: invoice.billingMonth } 
-            },
-          ],
-        },
-        orderBy: [
-          { billingYear: 'asc' },
-          { billingMonth: 'asc' },
-        ],
-      })
-
-      const arrearsAmount = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
-      const arrearsMonths = unpaidInvoices.map(inv => 
-        `${MONTH_NAMES[inv.billingMonth - 1]} ${inv.billingYear}`
-      )
-      
-      const currentMonthAmount = Number(invoice.userSubscription.amount)
-
       await emailService.sendInvoiceEmail(invoice.issuedTo.email, {
         invoiceId: invoice.id,
         subscriptionName: invoice.userSubscription.subscription.name,
@@ -222,9 +198,6 @@ export class InvoiceService {
         monthsCovered: invoice.monthsCovered,
         ownerName: invoice.userSubscription.subscription.owner.fullName,
         ownerEmail: invoice.userSubscription.subscription.owner.email,
-        currentMonthAmount: arrearsAmount > 0 ? currentMonthAmount : undefined,
-        arrearsAmount: arrearsAmount > 0 ? arrearsAmount : undefined,
-        arrearsMonths: arrearsMonths.length > 0 ? arrearsMonths : undefined,
       })
 
       await prisma.invoice.update({
@@ -238,7 +211,6 @@ export class InvoiceService {
       console.error('Error sending invoice email:', error)
       throw error
     }
->>>>>>> Stashed changes
   }
 
   async markInvoiceAsPaid(invoiceId: string): Promise<void> {
@@ -250,9 +222,6 @@ export class InvoiceService {
       },
     })
   }
-<<<<<<< Updated upstream
-=======
-
   async generateInvoiceForUser(userId: string, creatorUserId: string): Promise<Invoice> {
     const unpaidPayments = await prisma.payment.findMany({
       where: {
@@ -371,7 +340,6 @@ export class InvoiceService {
       invoices: result.invoices,
     }
   }
-
   async getInvoicePreviewForSubscription(
     subscriptionId: string, 
     month: number, 
@@ -651,5 +619,4 @@ export class InvoiceService {
       errors,
     }
   }
->>>>>>> Stashed changes
 }

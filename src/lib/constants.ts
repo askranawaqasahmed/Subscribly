@@ -13,6 +13,7 @@ export const ROUTES = {
   INVOICES: '/invoices',
   INVOICE_DETAIL: (id: string) => `/invoices/${id}`,
   PENDING_REPORT: '/reports/pending',
+  SETTINGS: '/admin/settings',
 } as const
 
 export const API_ROUTES = {
