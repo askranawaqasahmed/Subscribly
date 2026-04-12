@@ -27,8 +27,6 @@ export const API_ROUTES = {
   INVOICE_DETAIL: (id: string) => `/api/invoices/${id}`,
   SEND_INVOICE: (id: string) => `/api/invoices/${id}/send`,
   PENDING_REPORT: '/api/reports/pending',
-<<<<<<< Updated upstream
-=======
   // Settings
   ADMIN_SETTINGS: '/api/admin/settings',
   TEST_EMAIL_CONFIG: '/api/admin/settings/test-email',
@@ -39,7 +37,6 @@ export const API_ROUTES = {
   // Billing
   RUN_BILLING: '/api/billing/run',
   RUN_BILLING_MANUAL: '/api/billing/run-manual',
->>>>>>> Stashed changes
 } as const
 
 export const PAYMENT_TYPE_OPTIONS = [
