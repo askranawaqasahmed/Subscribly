@@ -20,12 +20,26 @@ export const API_ROUTES = {
   SUBSCRIPTIONS: '/api/subscriptions',
   SUBSCRIPTION_DETAIL: (id: string) => `/api/subscriptions/${id}`,
   SUBSCRIPTION_MEMBERS: (id: string) => `/api/subscriptions/${id}/members`,
+  GENERATE_SUBSCRIPTION_INVOICE: (id: string) => `/api/subscriptions/${id}/generate-invoice`,
   PAYMENTS: '/api/payments',
   MARK_PAID: (id: string) => `/api/payments/${id}/mark-paid`,
   INVOICES: '/api/invoices',
   INVOICE_DETAIL: (id: string) => `/api/invoices/${id}`,
   SEND_INVOICE: (id: string) => `/api/invoices/${id}/send`,
   PENDING_REPORT: '/api/reports/pending',
+<<<<<<< Updated upstream
+=======
+  // Settings
+  ADMIN_SETTINGS: '/api/admin/settings',
+  TEST_EMAIL_CONFIG: '/api/admin/settings/test-email',
+  // Invoice generation
+  GENERATE_INVOICE_FOR_USER: '/api/invoices/generate-for-user',
+  GENERATE_ALL_INVOICES: '/api/invoices/generate-all',
+  USERS_WITH_UNPAID: '/api/users/with-unpaid-payments',
+  // Billing
+  RUN_BILLING: '/api/billing/run',
+  RUN_BILLING_MANUAL: '/api/billing/run-manual',
+>>>>>>> Stashed changes
 } as const
 
 export const PAYMENT_TYPE_OPTIONS = [

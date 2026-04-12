@@ -29,12 +29,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Plus, Eye, Edit, Trash2, Users, UserPlus, UserMinus } from 'lucide-react'
+import { Plus, Eye, Edit, Trash2, Users, UserPlus, UserMinus, FileText, Mail, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { UserMultiSelect } from '@/components/ui/user-multi-select'
 import { MemberAmountInput } from '@/components/subscriptions/member-amount-input'
 import { MemberAvatars } from '@/components/subscriptions/member-avatars'
+import { API_ROUTES } from '@/lib/constants'
+import type { MemberInvoicePreviewDto } from '@/lib/types'
 
 interface SubscriptionType {
   id: string
@@ -56,6 +65,7 @@ interface Subscription {
   totalAmount: number
   totalMembers: number
   paymentType: string
+  billingDate: number | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -97,9 +107,20 @@ export default function SubscriptionsPage() {
     totalAmount: '',
     paymentType: 'equal',
     subscriptionTypeId: '',
+    billingDate: '',
     selectedUserIds: [] as string[],
     memberAmounts: {} as Record<string, number>,
   })
+
+  // Generate Invoice Dialog state
+  const [generateInvoiceOpen, setGenerateInvoiceOpen] = useState(false)
+  const [invoiceSubscription, setInvoiceSubscription] = useState<Subscription | null>(null)
+  const [invoiceMonth, setInvoiceMonth] = useState(new Date().getMonth() + 1)
+  const [invoiceYear, setInvoiceYear] = useState(new Date().getFullYear())
+  const [sendEmail, setSendEmail] = useState(false)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+  const [generatingInvoice, setGeneratingInvoice] = useState(false)
+  const [invoicePreview, setInvoicePreview] = useState<MemberInvoicePreviewDto[]>([])
 
   useEffect(() => {
     fetchSubscriptions()
@@ -175,6 +196,7 @@ export default function SubscriptionsPage() {
         totalAmount: subscription.totalAmount.toString(),
         paymentType: subscription.paymentType,
         subscriptionTypeId: '',
+        billingDate: subscription.billingDate?.toString() || '',
         selectedUserIds: memberIds,
         memberAmounts: amounts,
       })
@@ -185,6 +207,7 @@ export default function SubscriptionsPage() {
         totalAmount: '',
         paymentType: 'equal',
         subscriptionTypeId: '',
+        billingDate: '',
         selectedUserIds: [],
         memberAmounts: {},
       })
@@ -253,6 +276,7 @@ export default function SubscriptionsPage() {
           totalMembers: formData.selectedUserIds.length,
           paymentType: formData.paymentType,
           subscriptionTypeId: formData.subscriptionTypeId || null,
+          billingDate: formData.billingDate ? parseInt(formData.billingDate) : null,
           memberUserIds: formData.selectedUserIds,
           memberAmounts: formData.memberAmounts,
         }),
@@ -338,6 +362,78 @@ export default function SubscriptionsPage() {
     } catch (error) {
       console.error('Error:', error)
       toast.error('Failed to remove member')
+    }
+  }
+
+  const openGenerateInvoiceDialog = async (subscription: Subscription) => {
+    setInvoiceSubscription(subscription)
+    const now = new Date()
+    setInvoiceMonth(now.getMonth() + 1)
+    setInvoiceYear(now.getFullYear())
+    setSendEmail(false)
+    setGenerateInvoiceOpen(true)
+    
+    // Load preview
+    await loadInvoicePreview(subscription.id, now.getMonth() + 1, now.getFullYear())
+  }
+
+  const loadInvoicePreview = async (subscriptionId: string, month: number, year: number) => {
+    setLoadingPreview(true)
+    try {
+      const response = await fetch(API_ROUTES.GENERATE_SUBSCRIPTION_INVOICE(subscriptionId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, year, preview: true }),
+      })
+
+      if (!response.ok) throw new Error('Failed to load preview')
+
+      const data = await response.json()
+      setInvoicePreview(data.preview || [])
+    } catch (error) {
+      console.error('Error loading preview:', error)
+      toast.error('Failed to load preview')
+      setInvoicePreview([])
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
+  const handleGenerateInvoice = async () => {
+    if (!invoiceSubscription) return
+
+    setGeneratingInvoice(true)
+    try {
+      const response = await fetch(API_ROUTES.GENERATE_SUBSCRIPTION_INVOICE(invoiceSubscription.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: invoiceMonth,
+          year: invoiceYear,
+          sendEmail,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Failed to generate invoices')
+
+      toast.success(data.message || 'Invoices generated successfully')
+      setGenerateInvoiceOpen(false)
+      fetchSubscriptions()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to generate invoices')
+    } finally {
+      setGeneratingInvoice(false)
+    }
+  }
+
+  const handleMonthYearChange = async (month: number, year: number) => {
+    setInvoiceMonth(month)
+    setInvoiceYear(year)
+    if (invoiceSubscription) {
+      await loadInvoicePreview(invoiceSubscription.id, month, year)
     }
   }
 
@@ -465,6 +561,14 @@ export default function SubscriptionsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => openGenerateInvoiceDialog(subscription)}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => openDrawer('edit', subscription)}
                         >
                           <Edit className="h-4 w-4" />
@@ -540,6 +644,17 @@ export default function SubscriptionsPage() {
                     {selectedSubscription.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                {selectedSubscription.billingDate && (
+                  <div className="space-y-2 col-span-2">
+                    <Label className="text-muted-foreground">Billing Date</Label>
+                    <p className="text-lg font-semibold">
+                      Day {selectedSubscription.billingDate} of each month
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Invoices will be automatically generated on this day
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -750,6 +865,29 @@ export default function SubscriptionsPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="billingDate">Billing Date (Optional)</Label>
+                <Select
+                  value={formData.billingDate}
+                  onValueChange={(value) => setFormData({ ...formData, billingDate: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select billing day..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No automatic billing</SelectItem>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
+                      <SelectItem key={day} value={day.toString()}>
+                        Day {day} of each month
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose a day for automatic monthly invoice generation
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Select Members * ({formData.selectedUserIds.length} selected)</Label>
                 </div>
@@ -863,6 +1001,169 @@ export default function SubscriptionsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Generate Invoice Dialog */}
+      <Dialog open={generateInvoiceOpen} onOpenChange={setGenerateInvoiceOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate Invoice</DialogTitle>
+            <DialogDescription>
+              Generate invoices for {invoiceSubscription?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Month/Year Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Month</Label>
+                <Select 
+                  value={invoiceMonth.toString()} 
+                  onValueChange={(value) => handleMonthYearChange(parseInt(value), invoiceYear)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                      <SelectItem key={month} value={month.toString()}>
+                        {new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <Select 
+                  value={invoiceYear.toString()} 
+                  onValueChange={(value) => handleMonthYearChange(invoiceMonth, parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Send Email Toggle */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendEmail"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="sendEmail" className="cursor-pointer">
+                Send email notification to members
+              </Label>
+            </div>
+
+            {/* Preview */}
+            <div className="space-y-4">
+              <Label className="text-lg font-bold">Member Preview</Label>
+              {loadingPreview ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : invoicePreview.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No members found</p>
+              ) : (
+                <div className="space-y-3">
+                  {invoicePreview.map((preview) => (
+                    <div
+                      key={preview.memberId}
+                      className={`p-4 border rounded-lg ${
+                        preview.alreadyGenerated ? 'bg-yellow-50 border-yellow-200' : 'bg-white'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold">{preview.memberName}</p>
+                          <p className="text-sm text-muted-foreground">{preview.memberEmail}</p>
+                          
+                          {preview.alreadyGenerated && (
+                            <Badge className="mt-2 bg-yellow-100 text-yellow-800">
+                              Already Generated
+                            </Badge>
+                          )}
+
+                          <div className="mt-3 space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Current Month:</span>
+                              <span className="font-medium">${preview.currentMonthAmount.toFixed(2)}</span>
+                            </div>
+                            {preview.arrearsAmount > 0 && (
+                              <>
+                                <div className="flex justify-between text-amber-700">
+                                  <span>Arrears ({preview.arrearsMonths.join(', ')}):</span>
+                                  <span className="font-medium">${preview.arrearsAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between pt-2 border-t font-bold">
+                                  <span>Total:</span>
+                                  <span className="text-primary">${preview.totalAmount.toFixed(2)}</span>
+                                </div>
+                              </>
+                            )}
+                            {preview.arrearsAmount === 0 && (
+                              <div className="flex justify-between pt-2 border-t font-bold">
+                                <span>Total:</span>
+                                <span className="text-primary">${preview.totalAmount.toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleGenerateInvoice}
+                disabled={generatingInvoice || loadingPreview || invoicePreview.length === 0}
+                className="flex-1 bg-gradient-to-r from-primary to-secondary"
+              >
+                {generatingInvoice ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : sendEmail ? (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Generate & Email
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generate Invoices
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setGenerateInvoiceOpen(false)}
+                disabled={generatingInvoice}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -24,6 +24,9 @@ export class EmailService {
       monthsCovered: string
       ownerName: string
       ownerEmail: string
+      currentMonthAmount?: number
+      arrearsAmount?: number
+      arrearsMonths?: string[]
     }
   ): Promise<void> {
     const emailHtml = this.generateInvoiceEmailTemplate(invoiceData)
@@ -79,7 +82,24 @@ export class EmailService {
     monthsCovered: string
     ownerName: string
     ownerEmail: string
+    currentMonthAmount?: number
+    arrearsAmount?: number
+    arrearsMonths?: string[]
   }): string {
+    const hasArrears = data.arrearsAmount && data.arrearsAmount > 0
+    
+    const breakdownHtml = hasArrears && data.currentMonthAmount ? `
+      <div style="background: #fff3cd; padding: 15px; margin: 15px 0; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <p style="margin: 0 0 10px 0; font-weight: bold; color: #856404;">Invoice Breakdown:</p>
+        ${data.arrearsMonths && data.arrearsMonths.length > 0 ? `
+          <p style="margin: 5px 0; color: #856404;"><strong>Previous Unpaid (${data.arrearsMonths.join(', ')}):</strong> $${data.arrearsAmount.toFixed(2)}</p>
+        ` : ''}
+        <p style="margin: 5px 0;"><strong>Current Month:</strong> $${data.currentMonthAmount.toFixed(2)}</p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;">
+        <p style="margin: 5px 0; font-size: 18px;"><strong>Total Amount:</strong> $${data.totalAmount.toFixed(2)}</p>
+      </div>
+    ` : ''
+
     return `
       <!DOCTYPE html>
       <html>
@@ -107,9 +127,15 @@ export class EmailService {
                 <p><strong>Invoice ID:</strong> ${data.invoiceId}</p>
                 <p><strong>Subscription:</strong> ${data.subscriptionName}</p>
                 <p><strong>Months Covered:</strong> ${data.monthsCovered}</p>
-                <p><strong>Total Amount Due:</strong></p>
-                <p class="amount">$${data.totalAmount.toFixed(2)}</p>
+                ${breakdownHtml}
+                ${!hasArrears ? `
+                  <p><strong>Total Amount Due:</strong></p>
+                  <p class="amount">$${data.totalAmount.toFixed(2)}</p>
+                ` : ''}
               </div>
+              ${hasArrears ? `
+                <p style="color: #856404;"><strong>Note:</strong> This invoice includes outstanding amounts from previous months.</p>
+              ` : ''}
               <p>Please contact ${data.ownerName} at ${data.ownerEmail} for payment instructions.</p>
               <p>Thank you!</p>
             </div>

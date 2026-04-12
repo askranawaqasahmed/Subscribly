@@ -122,6 +122,7 @@ export class SubscriptionService {
       totalAmount: Number(sub.totalAmount),
       totalMembers: sub.totalMembers,
       paymentType: sub.paymentType,
+      billingDate: sub.billingDate,
       isActive: sub.isActive,
       createdAt: sub.createdAt.toISOString(),
       updatedAt: sub.updatedAt.toISOString(),
@@ -180,7 +181,7 @@ export class SubscriptionService {
   }
 
   async createSubscription(userId: string, dto: any) {
-    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, ...subscriptionData } = dto
+    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, billingDate, ...subscriptionData } = dto
 
     return await prisma.$transaction(async (tx) => {
       // Create the subscription
@@ -192,6 +193,7 @@ export class SubscriptionService {
           paymentType: paymentType as any,
           totalMembers: totalMembers,
           subscriptionTypeId: subscriptionData.subscriptionTypeId || null,
+          billingDate: billingDate || null,
           createdBy: userId,
           isActive: true,
         },
@@ -222,7 +224,7 @@ export class SubscriptionService {
   }
 
   async updateSubscription(id: string, dto: any) {
-    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, ...subscriptionData } = dto
+    const { memberUserIds, memberAmounts, paymentType, totalAmount, totalMembers, billingDate, ...subscriptionData } = dto
 
     return await prisma.$transaction(async (tx) => {
       // Update the subscription
@@ -235,6 +237,7 @@ export class SubscriptionService {
           totalMembers: totalMembers,
           paymentType: paymentType,
           subscriptionTypeId: subscriptionData.subscriptionTypeId || null,
+          billingDate: billingDate !== undefined ? billingDate : undefined,
         },
       })
 

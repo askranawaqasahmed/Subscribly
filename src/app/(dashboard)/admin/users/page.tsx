@@ -12,6 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { Users } from 'lucide-react'
@@ -32,6 +42,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [userToToggle, setUserToToggle] = useState<{ id: string; isActive: boolean; name: string } | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -56,16 +67,22 @@ export default function AdminUsersPage() {
     }
   }
 
-  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    setActionLoading(userId)
+  const handleToggleClick = (userId: string, currentStatus: boolean, userName: string) => {
+    setUserToToggle({ id: userId, isActive: currentStatus, name: userName })
+  }
+
+  const toggleUserStatus = async () => {
+    if (!userToToggle) return
+
+    setActionLoading(userToToggle.id)
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/admin/users/${userToToggle.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isActive: !currentStatus,
+          isActive: !userToToggle.isActive,
         }),
       })
 
@@ -77,17 +94,18 @@ export default function AdminUsersPage() {
       const updatedUser = await response.json()
       
       setUsers(users.map(user => 
-        user.id === userId ? updatedUser : user
+        user.id === userToToggle.id ? updatedUser : user
       ))
 
       toast.success(
-        `User ${!currentStatus ? 'activated' : 'deactivated'} successfully`
+        `User ${!userToToggle.isActive ? 'activated' : 'deactivated'} successfully`
       )
     } catch (error) {
       console.error('Error updating user:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to update user status')
     } finally {
       setActionLoading(null)
+      setUserToToggle(null)
     }
   }
 
@@ -183,7 +201,7 @@ export default function AdminUsersPage() {
                       <Button
                         size="sm"
                         variant={user.isActive ? 'destructive' : 'default'}
-                        onClick={() => toggleUserStatus(user.id, user.isActive)}
+                        onClick={() => handleToggleClick(user.id, user.isActive, user.fullName)}
                         disabled={actionLoading === user.id}
                         className={user.isActive 
                           ? 'hover:shadow-lg transition-all' 
@@ -203,6 +221,42 @@ export default function AdminUsersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!userToToggle} onOpenChange={(open) => !open && setUserToToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {userToToggle?.isActive ? 'Deactivate User' : 'Activate User'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {userToToggle?.isActive ? 'deactivate' : 'activate'} <strong>{userToToggle?.name}</strong>?
+              {userToToggle?.isActive && (
+                <span className="block mt-2 text-destructive">
+                  This user will no longer be able to access the system.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading === userToToggle?.id}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={toggleUserStatus}
+              disabled={actionLoading === userToToggle?.id}
+              className={userToToggle?.isActive 
+                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' 
+                : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90'}
+            >
+              {actionLoading === userToToggle?.id
+                ? 'Processing...'
+                : userToToggle?.isActive
+                ? 'Deactivate'
+                : 'Activate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -152,6 +152,33 @@ export interface GenerateInvoiceDto {
   payment_ids: string[]
 }
 
+export interface GenerateSubscriptionInvoiceDto {
+  subscriptionId: string
+  month: number
+  year: number
+  sendEmail?: boolean
+}
+
+export interface MemberInvoicePreviewDto {
+  memberId: string
+  memberName: string
+  memberEmail: string
+  currentMonthAmount: number
+  arrearsAmount: number
+  arrearsMonths: string[]
+  totalAmount: number
+  alreadyGenerated: boolean
+}
+
+export interface GenerateInvoiceResultDto {
+  memberId: string
+  memberName: string
+  success: boolean
+  invoiceId?: string
+  message: string
+  alreadyExists?: boolean
+}
+
 export interface InvoiceDetailDto extends Invoice {
   subscription_name: string
   subscription_icon: string | null
